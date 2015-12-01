@@ -1,38 +1,49 @@
 import PIL
 from PIL import Image
-from tkinter import Tk
-import tkinter.filedialog as tkdialog
-import os
 import re
+import os
 
 
-""" Pyhon programm to resize all images in a folder to the selected width and put them
-    in the drawable-xxhdpi folder of AndroidUniversalPrototypes
-"""
-basewidth = 1000
-xxhdpi_directory = r"/Users/Florian/AndroidStudioProjects/AndroidUniversalPrototypes/app/src/main/res/drawable-xxhdpi/"
+class Resize:
+    def __init__(self, module_directory):
+        """
+        :param module_directory: Must follow the pattern "PATH_TO_PROJECT/MODULE/"
+        """
+        self.base_directory = ''.join([module_directory, r"src/main/res/drawable-"])
 
-# Ask for image directory
-Tk().withdraw()
-directory = tkdialog.askdirectory()
+        self.resolutions = {
+            'xxhdpi/': 3,
+            'xhdpi/': 2,
+            'hdpi/': 1.5,
+            'mdpi/': 1,
+            'ldpi/': 0.75,
+        }
 
-# Move to directory
-os.chdir(directory)
+        # Apply only to images (very rudimentary filtering, needs improvement)
+        self.pattern = re.compile('(.*).(?:jpg|gif|png)')  # TODO Improve regex
 
-# Apply only to images (very rudimentary filtering, needs improvement)
-pattern = re.compile('(.*).(?:jpg|gif|png)')  # TODO Improve regex
+    def resize_file(self, filepath, width_dp):
 
-for file in os.listdir(directory):
-    if pattern.match(file):
-        img = Image.open(file)
-        wpercent = (basewidth / float(img.size[0]))
-        hsize = int((float(img.size[1]) * float(wpercent)))
-        img = img.resize((basewidth, hsize), PIL.Image.ANTIALIAS)
+        # For every resolution resize with the correct factor and save in the corresponding directory
+        for resolution_directory, factor in self.resolutions.items():
+            img = self.__internal_resize(filepath, int(width_dp * factor))
+            filename = os.path.basename(filepath)
 
-        os.remove(file)
+            # Delete the file if existing, rewrite the updated version
+            savelocation = ''.join([self.base_directory, resolution_directory, filename])
+            # os.remove(savelocation)
+            img.save(savelocation)
 
-        # Delete the file if existing, rewrite the updated version
-        img.save(''.join([xxhdpi_directory, file]))
+    def __internal_resize(self, filepath, width):
+        if self.pattern.match(filepath):  # todo implement with decorator
+            img = Image.open(filepath)
+            wpercent = (width / float(img.size[0]))
+            hsize = int((float(img.size[1]) * float(wpercent)))
+            img = img.resize((width, hsize), PIL.Image.ANTIALIAS)
+            return img
+            # os.remove(filepath)
 
-
-# img = Image.open('')
+            # Delete the file if existing, rewrite the updated version
+            # img.save(''.join([xxhdpi_directory, filepath]))
+            print(filepath)
+            print(os.path.basename(filepath))
